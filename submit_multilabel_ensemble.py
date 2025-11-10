@@ -19,6 +19,7 @@ from xview3.constants import PIX_TO_M
 from xview3.inference import (
     predict_multilabel_scenes,
 )
+from xview3.utils import choose_torch_device
 
 
 def run_multilabel_predict(config: Dict[str, Any], data_dir: str):
@@ -56,9 +57,10 @@ def run_multilabel_predict(config: Dict[str, Any], data_dir: str):
                     model = model.to(memory_format=torch.channels_last)
                     print("Using channels last format")
 
+                map_location = choose_torch_device()
                 model = torch.jit.trace(
                     model,
-                    example_inputs=torch.randn(1, len(channels), tile_size, tile_size).cuda(),
+                    example_inputs=torch.randn(1, len(channels), tile_size, tile_size).to(map_location),
                     strict=False,
                 )
                 if is_main_process():
@@ -175,7 +177,7 @@ def main(
     local_rank=int(os.environ.get("LOCAL_RANK", 0)),
     world_size=int(os.environ.get("WORLD_SIZE", 1))
 ):
-    if world_size > 1:
+    if world_size > 1 and torch.cuda.is_available():
         torch.distributed.init_process_group(backend="nccl", timeout=timedelta(hours=4))
         torch.cuda.set_device(local_rank)
         print("Initialized distributed inference", local_rank, world_size)

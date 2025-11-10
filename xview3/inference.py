@@ -250,7 +250,10 @@ def ensemble_from_config(config: Dict[str, Any]):
         with_offset=config["ensemble"]["with_offset"],
     )
     box_coder = get_box_coder_from_model(model)
-    model = model.eval().cuda()
+
+    from xview3.utils import choose_torch_device
+    map_location = choose_torch_device()
+    model = model.eval().to(map_location)
     return model, checkpoints, box_coder
 
 

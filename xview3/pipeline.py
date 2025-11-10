@@ -68,8 +68,9 @@ class Pipeline:
             return
         sleep(int(self.cfg.world_size) * 0.1)
         print("Initializing init_process_group", self.cfg.local_rank, flush=True)
-        torch.cuda.set_device(int(self.cfg.local_rank))
-        torch.distributed.init_process_group(backend="nccl")
+        if torch.cuda.is_available():
+            torch.cuda.set_device(int(self.cfg.local_rank))
+            torch.distributed.init_process_group(backend="nccl")
 
         sleep(int(self.cfg.world_size) * 0.1)
         print("Initialized init_process_group", int(self.cfg.local_rank), flush=True)
@@ -413,7 +414,9 @@ class Pipeline:
             freeze_model(model.encoder, freeze_parameters=True, freeze_bn=False)
             self.master_print("Frozen model encoder")
 
-        model = model.cuda()
+        from xview3.utils import choose_torch_device
+        map_location = choose_torch_device()
+        model = model.to(map_location)
         if self.cfg.torch.channels_last:
             model = model.to(memory_format=torch.channels_last)
             self.master_print("Using Channels Last")
@@ -465,7 +468,9 @@ class Pipeline:
         if output_key is not None and not isinstance(output_key, str):
             output_key = OmegaConf.to_container(output_key, resolve=True)
 
-        runner = SupervisedRunner(input_key=input_key, output_key=output_key, device="cuda")
+        from xview3.utils import choose_torch_device
+        map_location = choose_torch_device()
+        runner = SupervisedRunner(input_key=input_key, output_key=output_key, device=map_location)
         extra_callbacks = [TimerCallback()]
         # try:
         runner.train(
@@ -516,4 +521,6 @@ class TrainOnlyCriterionCallback(CriterionCallback):
         if runner.is_train_loader:
             return super(TrainOnlyCriterionCallback, self).on_batch_end(runner)
         else:
-            runner.batch_metrics[self.prefix] = torch.tensor(0, device="cuda")
+            from xview3.utils import choose_torch_device
+            map_location = choose_torch_device()
+            runner.batch_metrics[self.prefix] = torch.tensor(0, device=map_location)

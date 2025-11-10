@@ -15,6 +15,8 @@ from xview3.inference import (
     predict_multilabel_scenes,
 )
 
+from xview3.utils import choose_torch_device
+
 TTA_BATCH_SIZE_DIVISOR = {
     "d4": 8,
     "d2": 4,
@@ -48,7 +50,8 @@ def run_multilabel_predict(
 
     normalization_op = build_normalization(checkpoint["checkpoint_data"]["config"]["normalization"])
 
-    model = torch.jit.trace(model.cuda(), example_inputs=torch.randn(1, len(channels), 2048, 2048).cuda(), strict=False)
+    map_location = choose_torch_device()
+    model = torch.jit.trace(model.to(map_location), example_inputs=torch.randn(1, len(channels), 2048, 2048).to(map_location), strict=False)
     tta_suffix = "" if tta_mode is None else f"_tta_{tta_mode}"
 
     multi_score_test_predictions = predict_multilabel_scenes(

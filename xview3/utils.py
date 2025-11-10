@@ -1,6 +1,7 @@
 import math
 
 import numpy as np
+import torch
 
 
 def pad(vh, rows, cols):
@@ -44,3 +45,18 @@ def view_as_blocks(arr, block_size):
     m, n = arr.shape
     M, N = block_size
     return arr.reshape(m // M, M, n // N, N).swapaxes(1, 2).reshape(-1, M, N)
+
+
+def choose_torch_device() -> str:
+    '''Convenience routine for guessing which GPU device to run model on'''
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+def empty_cache():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+        torch.mps.empty_cache()

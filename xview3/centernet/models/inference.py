@@ -38,7 +38,7 @@ def move_to_device_non_blocking(x: Tensor, device: torch.device):
 
 
 def centernet_flips_tta(model: nn.Module, average_heatmap=True):
-    if torch.cuda.device_count() > 1:
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
 
     return tta.GeneralizedTTA(
@@ -54,7 +54,7 @@ def centernet_flips_tta(model: nn.Module, average_heatmap=True):
 
 
 def centernet_d2_tta(model: nn.Module, average_heatmap=True):
-    if torch.cuda.device_count() > 1:
+    if torch.cuda.is_available() and torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
 
     return tta.GeneralizedTTA(
@@ -267,7 +267,9 @@ def multilabel_centernet_tiled_inference(
         image_margin=(0, 0, 0, 0),
     )
 
-    tile_device = "cuda" if accumulate_on_gpu else "cpu"
+    from xview3.utils import choose_torch_device
+    map_location = choose_torch_device()
+    tile_device = map_location if accumulate_on_gpu else "cpu"
     tile_dtype = (torch.float16 if fp16 else torch.float32) if accumulate_on_gpu else torch.float32
 
     heatmap_merger = TileMerger(
@@ -317,7 +319,8 @@ def multilabel_centernet_tiled_inference(
         image_tensor = image_tensor.to(
             device, non_blocking=True, memory_format=torch.channels_last if channels_last else torch.contiguous_format
         )
-        with torch.cuda.amp.autocast(fp16):
+
+        with torch.autocast(device_type = map_location, dtype = torch.bfloat16 if fp16 else None):
             output = model(image_tensor)
 
         objectness = move_to_device_non_blocking(output[CENTERNET_OUTPUT_OBJECTNESS_MAP], heatmap_merger.device)
@@ -329,7 +332,10 @@ def multilabel_centernet_tiled_inference(
             has_offset_predictions = True
 
         if not accumulate_on_gpu:
-            torch.cuda.synchronize()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            else:
+                torch.mps.synchronize()
 
         heatmap_merger.integrate_batch(objectness, pred_coords)
         is_vessel_merger.integrate_batch(vessel, pred_coords)

@@ -273,7 +273,8 @@ class CenternetPipeline(Pipeline):
 
 @hydra_dpp_friendly_main(config_path="configs", config_name="multilabel_circle_net")
 def main(config: DictConfig) -> None:
-    torch.cuda.empty_cache()
+    from xview3.utils import empty_cache
+    empty_cache()
     catalyst.utils.set_global_seed(int(config.seed))
 
     torch.set_anomaly_enabled(config.torch.detect_anomaly)

@@ -11,7 +11,7 @@ from fire import Fire
 from xview3 import *
 from xview3.centernet.models.inference import get_box_coder_from_model
 from xview3.evaluation import evaluate_on_scenes
-
+from xview3.utils import choose_torch_device
 
 @torch.no_grad()
 def run_predict(
@@ -48,11 +48,12 @@ def run_predict(
     box_coder = get_box_coder_from_model(model)
     print(box_coder)
 
+    map_location = choose_torch_device()
     if no_model:
         model = None
     else:
-        model = model.eval().cuda()
-        model = torch.jit.trace(model, example_inputs=torch.randn(1, len(channels), 2048, 2048).cuda(), strict=False)
+        model = model.eval().to(map_location)
+        model = torch.jit.trace(model, example_inputs=torch.randn(1, len(channels), 2048, 2048).to(map_location), strict=False)
 
     gc.collect()
 
@@ -127,7 +128,7 @@ def main():
     args = parser.parse_args()
     world_size = args.world_size
     local_rank = args.local_rank
-    if world_size > 1:
+    if world_size > 1 and torch.cuda.is_available():
         torch.distributed.init_process_group(backend="nccl", timeout=timedelta(hours=4))
         torch.cuda.set_device(local_rank)
         print("Initialized distributed inference", local_rank, world_size)

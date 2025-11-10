@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 from xview3 import apply_thresholds, MultilabelCircleNetCoder, CubicRootNormalization, SigmoidNormalization
 from xview3.constants import IGNORE_LABEL
 from xview3.inference import maybe_run_inference
+from xview3.utils import choose_torch_device
 
 
 # @torch.jit.optimized_execution(False)
@@ -44,7 +45,7 @@ def main(args):
 
     normalization = {"vv": SigmoidNormalization(-20, 0.18), "vh": SigmoidNormalization(-20, 0.18), "bathymetry": CubicRootNormalization()}
 
-    ensemble = torch.jit.load(config["ensemble"], map_location="cuda")
+    ensemble = torch.jit.load(config["ensemble"], map_location=choose_torch_device())
     print("Loaded ensemble from", config["ensemble"])
 
     all_predictions = []
