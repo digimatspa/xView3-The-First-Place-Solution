@@ -6,6 +6,18 @@ NONVESSEL = 3
 
 IGNORE_LABEL = 255
 
+# Mask values for binary classification
+NODATA_OWIMASK = -32768  # Treated as water
+MASK_WATER = 0  # Water areas (including NODATA)
+MASK_NONWATER = 1  # Non-water areas (land, ice, infrastructure)
+# Valid mask values set (simplified for binary classification)
+VALID_MASK_VALUES = {
+    MASK_WATER,  # Water (0)
+    MASK_NONWATER,  # Non-water (1)
+    NODATA_OWIMASK  # NODATA (-32768) treated as water
+}
+
+
 # nodata values for each channel
 NODATA_OWIMASK = -32768
 NODATA_OWIWINDSPEED = -32768
