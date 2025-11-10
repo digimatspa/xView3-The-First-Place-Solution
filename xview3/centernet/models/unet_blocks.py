@@ -2,7 +2,7 @@ from functools import partial
 
 import torch
 from pytorch_toolbelt.modules import DepthwiseSeparableConv2d, ABN
-from timm.models.efficientnet_blocks import InvertedResidual
+from timm.models._efficientnet_blocks import InvertedResidual
 from timm.models.layers import EffectiveSEModule
 from torch import nn
 from pytorch_toolbelt.modules import (
